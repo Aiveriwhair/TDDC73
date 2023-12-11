@@ -8,27 +8,40 @@ enum PasswordStrength {
   strong,
 }
 
+const TextStyle _defaultLabelStyle = TextStyle(
+  fontSize: 14,
+  color: Colors.grey,
+  decoration: TextDecoration.none,
+);
+
+const TextStyle _defaultTextStyle = TextStyle(
+  fontSize: 14,
+  color: Colors.white,
+  decoration: TextDecoration.none,
+);
+
 class PasswordStrMeterWidget extends StatefulWidget {
   final double barHeight;
   final double borderWidth;
   final Color borderColor;
-  final BorderRadiusGeometry? borderRadius;
-  final Color? backgroundColor;
-  final String? label;
+  final Color? color;
   final TextStyle? labelStyle;
+  final TextStyle? textStyle;
   final int animationDuration;
+  final void Function(String password, PasswordStrength strength)?
+      onPasswordChanged;
   String password = "";
 
   PasswordStrMeterWidget(
       {Key? key,
+      this.onPasswordChanged,
       this.barHeight = 5.0,
       this.borderWidth = 1.0,
       this.borderColor = Colors.white,
-      this.borderRadius,
-      this.backgroundColor = Colors.grey,
-      this.label,
-      this.labelStyle,
-      this.animationDuration = 200})
+      this.color = Colors.transparent,
+      this.labelStyle = _defaultLabelStyle,
+      this.animationDuration = 200,
+      this.textStyle = _defaultTextStyle})
       : super(key: key);
 
   @override
@@ -38,35 +51,15 @@ class PasswordStrMeterWidget extends StatefulWidget {
 class PasswordStrMeterWidgetState extends State<PasswordStrMeterWidget> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Expanded(
-            child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  widget.password = value;
-                });
-              },
-              obscureText: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
-          Expanded(
-              child: Column(
+    return Material(
+        color: widget.color,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  const Text("Password strength: ",
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                          decoration: TextDecoration.none)),
+                  Text("Password strength: ", style: widget.labelStyle),
                   Text(_getStrengthMessage(),
                       style: TextStyle(
                           fontSize: 12,
@@ -74,39 +67,34 @@ class PasswordStrMeterWidgetState extends State<PasswordStrMeterWidget> {
                           decoration: TextDecoration.none))
                 ],
               ),
-              // Progress bar :
-              Container(
-                height: widget.barHeight,
-                width: MediaQuery.of(context).size.width * 0.8,
-                decoration: BoxDecoration(
-                  color: widget.backgroundColor,
-                  border: Border.all(
-                    color: widget.borderColor,
-                    width: widget.borderWidth,
-                  ),
-                  borderRadius: widget.borderRadius,
-                ),
-                child: AnimatedContainer(
-                  duration: Duration(milliseconds: widget.animationDuration),
-                  width: MediaQuery.of(context).size.width *
-                      0.8 *
-                      _getProgressPercentage(),
-                  decoration: BoxDecoration(
-                    color: _getProgressColor(),
-                    borderRadius: widget.borderRadius,
-                  ),
-                ),
+              LinearProgressIndicator(
+                value: _getProgressPercentage(),
+                backgroundColor: Colors.grey,
+                color: _getProgressColor(),
               ),
             ],
-          ))
-        ],
-      ),
-      const Text("Minimum 8 characters",
-          style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-              decoration: TextDecoration.none)),
-    ]));
+          ),
+          Container(height: 5),
+          TextField(
+            onChanged: (value) {
+              setState(() {
+                widget.password = value;
+              });
+              if (widget.onPasswordChanged != null) {
+                widget.onPasswordChanged!(value, _getPasswordStrength());
+              }
+            },
+            cursorColor: Colors.white,
+            style: widget.textStyle,
+            obscureText: true,
+            decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.blue, width: 2.0),
+                )),
+          ),
+          Text("Minimum 8 characters", style: widget.labelStyle),
+        ]));
   }
 
   double _getProgressPercentage() {
@@ -135,7 +123,7 @@ class PasswordStrMeterWidgetState extends State<PasswordStrMeterWidget> {
       case PasswordStrength.fair:
         return Colors.yellow;
       case PasswordStrength.good:
-        return Colors.green;
+        return Colors.lightGreen;
       case PasswordStrength.strong:
         return Colors.green;
       default:
